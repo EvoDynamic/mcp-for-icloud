@@ -1,6 +1,6 @@
 using MailKit;
 
-namespace AiVa.Mcp.Mail;
+namespace ICloudMcp.Mail;
 
 /// <summary>
 /// Cheap, explainable signals that pre-rank messages.
@@ -8,7 +8,7 @@ namespace AiVa.Mcp.Mail;
 /// </summary>
 public static class PriorityScorer
 {
-    public static (int Score, List<string> Reasons) ScoreInbox(MailSummary mail, IMessageSummary raw, AiVaOptions options, HashSet<string> known)
+    public static (int Score, List<string> Reasons) ScoreInbox(MailSummary mail, IMessageSummary raw, ICloudMcpOptions options, HashSet<string> known)
     {
         var score = 0;
         var reasons = new List<string>();
@@ -70,7 +70,7 @@ public static class PriorityScorer
     }
 
     /// <summary>Scores how likely a Junk message is legitimate mail that was misfiled.</summary>
-    public static (int Score, List<string> Reasons) ScoreSpamRescue(MailSummary mail, IMessageSummary raw, AiVaOptions options, HashSet<string> known)
+    public static (int Score, List<string> Reasons) ScoreSpamRescue(MailSummary mail, IMessageSummary raw, ICloudMcpOptions options, HashSet<string> known)
     {
         var score = 0;
         var reasons = new List<string>();

@@ -1,13 +1,13 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AiVa.Mcp;
+namespace ICloudMcp;
 
 /// <summary>
-/// User settings loaded from <c>%APPDATA%\icloud-mcp\config.json</c> (or the path in <c>AIVA_CONFIG</c>).
+/// User settings loaded from <c>%APPDATA%\icloud-mcp\config.json</c> (or the path in <c>ICLOUD_MCP_CONFIG</c>).
 /// Secrets never live here; the app-specific password comes from <see cref="CredentialProvider"/>.
 /// </summary>
-public sealed class AiVaOptions
+public sealed class ICloudMcpOptions
 {
     /// <summary>Apple ID used to sign in to iCloud CalDAV (and IMAP unless <see cref="MailUser"/> is set).</summary>
     public string AppleId { get; set; } = "";
@@ -36,8 +36,10 @@ public sealed class AiVaOptions
 
     public const string DefaultCredentialTarget = "icloud-mcp";
 
-    /// <summary>Target name used before the project was renamed; still read so existing installs keep working.</summary>
+    // Names from before the project was renamed from "AI VA".
+    // They are still read so existing installs keep working; drop them once nobody depends on them.
     public const string LegacyCredentialTarget = "AiVa-iCloud";
+    private const string LegacyConfigFolder = "AiVa";
 
     /// <summary>Windows Credential Manager target holding the Apple ID and app-specific password.</summary>
     public string CredentialTarget { get; set; } = DefaultCredentialTarget;
@@ -68,39 +70,43 @@ public sealed class AiVaOptions
             .Select(a => a!.Trim().ToLowerInvariant())
             .Distinct();
 
-    public static AiVaOptions Load()
+    public static ICloudMcpOptions Load()
     {
-        var path = Environment.GetEnvironmentVariable("AIVA_CONFIG");
+        var path = GetEnvironmentVariable("ICLOUD_MCP_CONFIG", "AIVA_CONFIG");
         if (string.IsNullOrWhiteSpace(path))
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             path = Path.Combine(appData, "icloud-mcp", "config.json");
 
-            // The folder was named AiVa before the project was renamed; keep reading it until the user moves it.
-            var legacyPath = Path.Combine(appData, "AiVa", "config.json");
+            // The project used to be called "AI VA"; keep reading its config folder until the user moves it.
+            var legacyPath = Path.Combine(appData, LegacyConfigFolder, "config.json");
             if (!File.Exists(path) && File.Exists(legacyPath))
             {
                 path = legacyPath;
             }
         }
 
-        var options = new AiVaOptions();
+        var options = new ICloudMcpOptions();
         if (File.Exists(path))
         {
             var json = File.ReadAllText(path);
-            options = JsonSerializer.Deserialize<AiVaOptions>(json, new JsonSerializerOptions
+            options = JsonSerializer.Deserialize<ICloudMcpOptions>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true,
                 Converters = { new JsonStringEnumConverter() },
-            }) ?? new AiVaOptions();
+            }) ?? new ICloudMcpOptions();
             options.ConfigFound = true;
         }
 
         options.ConfigPath = path;
         return options;
     }
+
+    /// <summary>Reads an environment variable, falling back to its pre-rename name.</summary>
+    public static string? GetEnvironmentVariable(string name, string legacyName) =>
+        Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? value : Environment.GetEnvironmentVariable(legacyName);
 }
 
 public sealed class WorkingHoursOptions

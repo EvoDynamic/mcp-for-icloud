@@ -1,5 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/AiVa.Mcp/AiVa.Mcp.csproj" />
+    <Project Path="src/ICloudMcp/ICloudMcp.csproj" />
   </Folder>
 </Solution>

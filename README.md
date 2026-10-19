@@ -34,7 +34,7 @@ git clone https://github.com/brianseim/icloud-mcp.git
 ```
 
 ```bash
-dotnet publish icloud-mcp/src/AiVa.Mcp/AiVa.Mcp.csproj -c Release -o icloud-mcp/publish
+dotnet publish icloud-mcp/src/ICloudMcp/ICloudMcp.csproj -c Release -o icloud-mcp/publish
 ```
 
 ### 1. Create an app-specific password
@@ -49,11 +49,9 @@ cmdkey /generic:icloud-mcp /user:you@icloud.com /pass
 ```
 
 Use the Apple ID you sign in to iCloud with as `/user`.
-Credentials saved under the older `AiVa-iCloud` name are still picked up.
 
 ### 3. Create your config
 Copy `config.example.json` to `%APPDATA%\icloud-mcp\config.json` and fill in your Apple ID, every alias you receive mail at, time zone, working hours and VIPs.
-A `%APPDATA%\AiVa\config.json` from an earlier version is still read if the new file doesn't exist.
 
 If your Apple ID is not an @icloud.com/@me.com address (e.g. it's a Gmail address), also set `MailUser` to your @icloud.com address — that's the IMAP login.
 
@@ -63,8 +61,8 @@ Open Claude Desktop → **Settings → Developer → Edit Config** and add to `c
 ```json
 {
   "mcpServers": {
-    "ai-va": {
-      "command": "C:\\path\\to\\icloud-mcp\\publish\\AiVa.Mcp.exe"
+    "icloud-mcp": {
+      "command": "C:\\path\\to\\icloud-mcp\\publish\\icloud-mcp.exe"
     }
   }
 }
@@ -99,11 +97,11 @@ Credential Manager is Windows-only, so pass the login through environment variab
 This stores the app-specific password in plain text in that file; it's limited to mail, calendar and contacts and can be revoked at any time.
 
 ```json
-"ai-va": {
-  "command": "/Users/you/source/icloud-mcp/publish/AiVa.Mcp",
+"icloud-mcp": {
+  "command": "/Users/you/source/icloud-mcp/publish/icloud-mcp",
   "env": {
-    "AIVA_ICLOUD_USER": "you@icloud.com",
-    "AIVA_ICLOUD_APP_PASSWORD": "xxxx-xxxx-xxxx-xxxx"
+    "ICLOUD_MCP_USER": "you@icloud.com",
+    "ICLOUD_MCP_APP_PASSWORD": "xxxx-xxxx-xxxx-xxxx"
   }
 }
 ```
@@ -119,10 +117,21 @@ git pull
 ```
 
 ```bash
-dotnet publish src/AiVa.Mcp/AiVa.Mcp.csproj -c Release -o publish
+dotnet publish src/ICloudMcp/ICloudMcp.csproj -c Release -o publish
 ```
 
 Reopen Claude Desktop to load the new version.
+
+### Upgrading from AI VA
+
+This project used to be called AI VA. After updating:
+- In `claude_desktop_config.json`, rename the `ai-va` entry to `icloud-mcp` and point it at `publish\icloud-mcp.exe` (the old `AiVa.Mcp.exe` is no longer built; delete it from `publish`).
+- Your existing setup keeps working without other changes: the old `AiVa-iCloud` credential, `%APPDATA%\AiVa\config.json` and `AIVA_*` environment variables are still read when the new ones don't exist.
+- To move to the new names, run the `cmdkey` command from [step 2](#2-store-it-in-windows-credential-manager), move the config to `%APPDATA%\icloud-mcp\config.json`, then remove the old credential:
+
+```bash
+cmdkey /delete:AiVa-iCloud
+```
 
 ## Contributing workflow
 
@@ -141,4 +150,4 @@ Then work on a branch, push it, and open a PR with `gh pr create`; merge with `g
 - Recurring events: titles/locations/notes can be edited (whole series); time changes are left to the Calendar app.
 - Creating events with invitees isn't supported yet; Claude can draft the invite email instead.
 - Priority scores are hints with reasons, not verdicts. Tune them in `config.json` → `Priority`.
-- Overrides: `AIVA_CONFIG` (config path), `AIVA_ICLOUD_USER` / `AIVA_ICLOUD_APP_PASSWORD` (if you'd rather not use Credential Manager).
+- Overrides: `ICLOUD_MCP_CONFIG` (config path), `ICLOUD_MCP_USER` / `ICLOUD_MCP_APP_PASSWORD` (if you'd rather not use Credential Manager).
