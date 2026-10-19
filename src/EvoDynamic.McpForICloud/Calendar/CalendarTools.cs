@@ -9,7 +9,7 @@ using Ical.Net.Serialization;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
-namespace AiVa.Mcp.Calendar;
+namespace EvoDynamic.McpForICloud.Calendar;
 
 public sealed record EventInfo(
     string Id,
@@ -28,7 +28,7 @@ public sealed record EventInfo(
 public sealed record FreeSlot(string Start, string End, int Minutes);
 
 [McpServerToolType]
-public sealed class CalendarTools(CalDavClient calDav, AiVaOptions options)
+public sealed class CalendarTools(CalDavClient calDav, McpForICloudOptions options)
 {
     private const string TimeFormat = "yyyy-MM-dd'T'HH:mm:sszzz";
     private const string DateFormat = "yyyy-MM-dd";
@@ -158,7 +158,7 @@ public sealed class CalendarTools(CalDavClient calDav, AiVaOptions options)
         {
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            "PRODID:-//AI VA//iCloud MCP//EN",
+            "PRODID:-//EvoDynamic//mcp-for-icloud//EN",
             "CALSCALE:GREGORIAN",
             "BEGIN:VEVENT",
             $"UID:{uid}",

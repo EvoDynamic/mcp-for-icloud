@@ -4,7 +4,7 @@ using System.Text;
 using System.Xml.Linq;
 using ModelContextProtocol;
 
-namespace AiVa.Mcp.Calendar;
+namespace EvoDynamic.McpForICloud.Calendar;
 
 public sealed record CalendarInfo(string Name, string Id, string? Color);
 
@@ -13,7 +13,7 @@ public sealed record CalendarResource(string Href, string? ETag, string Calendar
 /// <summary>
 /// Minimal CalDAV client for iCloud: discovery, time-range queries, and PUT/DELETE of single events.
 /// </summary>
-public sealed class CalDavClient(AiVaOptions options, CredentialProvider credentials) : IDisposable
+public sealed class CalDavClient(McpForICloudOptions options, CredentialProvider credentials) : IDisposable
 {
     private static readonly XNamespace s_dav = "DAV:";
     private static readonly XNamespace s_cal = "urn:ietf:params:xml:ns:caldav";
