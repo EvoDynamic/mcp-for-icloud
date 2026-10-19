@@ -5,13 +5,13 @@ using MailKit.Search;
 using MailKit.Security;
 using ModelContextProtocol;
 
-namespace ICloudMcp.Mail;
+namespace EvoDynamic.McpForICloud.Mail;
 
 /// <summary>
 /// Owns one long-lived IMAP connection to iCloud and serializes access to it,
 /// because an IMAP connection can only have one folder selected at a time.
 /// </summary>
-public sealed class MailService(ICloudMcpOptions options, CredentialProvider credentials) : IAsyncDisposable
+public sealed class MailService(McpForICloudOptions options, CredentialProvider credentials) : IAsyncDisposable
 {
     private static readonly TimeSpan s_knownSendersTtl = TimeSpan.FromMinutes(30);
 
@@ -20,7 +20,7 @@ public sealed class MailService(ICloudMcpOptions options, CredentialProvider cre
     private HashSet<string>? _knownSenders;
     private DateTimeOffset _knownSendersLoadedAt;
 
-    public ICloudMcpOptions Options => options;
+    public McpForICloudOptions Options => options;
 
     public async Task<T> RunAsync<T>(Func<ImapClient, Task<T>> action, CancellationToken ct)
     {

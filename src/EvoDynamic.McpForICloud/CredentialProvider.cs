@@ -2,13 +2,13 @@ using System.Net;
 using System.Runtime.InteropServices;
 using ModelContextProtocol;
 
-namespace ICloudMcp;
+namespace EvoDynamic.McpForICloud;
 
 /// <summary>
 /// Reads the iCloud app-specific password from Windows Credential Manager,
-/// falling back to the <c>ICLOUD_MCP_USER</c> / <c>ICLOUD_MCP_APP_PASSWORD</c> environment variables.
+/// falling back to the <c>MCP_FOR_ICLOUD_USER</c> / <c>MCP_FOR_ICLOUD_APP_PASSWORD</c> environment variables.
 /// </summary>
-public sealed class CredentialProvider(ICloudMcpOptions options)
+public sealed class CredentialProvider(McpForICloudOptions options)
 {
     private NetworkCredential? _cached;
 
@@ -23,9 +23,9 @@ public sealed class CredentialProvider(ICloudMcpOptions options)
         if (OperatingSystem.IsWindows())
         {
             fromStore = ReadWindowsCredential(options.CredentialTarget);
-            if (fromStore is null && options.CredentialTarget == ICloudMcpOptions.DefaultCredentialTarget)
+            if (fromStore is null && options.CredentialTarget == McpForICloudOptions.DefaultCredentialTarget)
             {
-                fromStore = ReadWindowsCredential(ICloudMcpOptions.LegacyCredentialTarget);
+                fromStore = ReadWindowsCredential(McpForICloudOptions.LegacyCredentialTarget);
             }
         }
 
@@ -34,8 +34,8 @@ public sealed class CredentialProvider(ICloudMcpOptions options)
 
         if (string.IsNullOrEmpty(password))
         {
-            user = ICloudMcpOptions.GetEnvironmentVariable("ICLOUD_MCP_USER", "AIVA_ICLOUD_USER");
-            password = ICloudMcpOptions.GetEnvironmentVariable("ICLOUD_MCP_APP_PASSWORD", "AIVA_ICLOUD_APP_PASSWORD");
+            user = McpForICloudOptions.GetEnvironmentVariable("MCP_FOR_ICLOUD_USER", "AIVA_ICLOUD_USER");
+            password = McpForICloudOptions.GetEnvironmentVariable("MCP_FOR_ICLOUD_APP_PASSWORD", "AIVA_ICLOUD_APP_PASSWORD");
         }
 
         if (string.IsNullOrEmpty(user))

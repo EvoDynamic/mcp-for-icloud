@@ -1,13 +1,13 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ICloudMcp;
+namespace EvoDynamic.McpForICloud;
 
 /// <summary>
-/// User settings loaded from <c>%APPDATA%\icloud-mcp\config.json</c> (or the path in <c>ICLOUD_MCP_CONFIG</c>).
+/// User settings loaded from <c>%APPDATA%\mcp-for-icloud\config.json</c> (or the path in <c>MCP_FOR_ICLOUD_CONFIG</c>).
 /// Secrets never live here; the app-specific password comes from <see cref="CredentialProvider"/>.
 /// </summary>
-public sealed class ICloudMcpOptions
+public sealed class McpForICloudOptions
 {
     /// <summary>Apple ID used to sign in to iCloud CalDAV (and IMAP unless <see cref="MailUser"/> is set).</summary>
     public string AppleId { get; set; } = "";
@@ -34,7 +34,7 @@ public sealed class ICloudMcpOptions
 
     public PriorityOptions Priority { get; set; } = new();
 
-    public const string DefaultCredentialTarget = "icloud-mcp";
+    public const string DefaultCredentialTarget = "mcp-for-icloud";
 
     // Names from before the project was renamed from "AI VA".
     // They are still read so existing installs keep working; drop them once nobody depends on them.
@@ -70,13 +70,13 @@ public sealed class ICloudMcpOptions
             .Select(a => a!.Trim().ToLowerInvariant())
             .Distinct();
 
-    public static ICloudMcpOptions Load()
+    public static McpForICloudOptions Load()
     {
-        var path = GetEnvironmentVariable("ICLOUD_MCP_CONFIG", "AIVA_CONFIG");
+        var path = GetEnvironmentVariable("MCP_FOR_ICLOUD_CONFIG", "AIVA_CONFIG");
         if (string.IsNullOrWhiteSpace(path))
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            path = Path.Combine(appData, "icloud-mcp", "config.json");
+            path = Path.Combine(appData, "mcp-for-icloud", "config.json");
 
             // The project used to be called "AI VA"; keep reading its config folder until the user moves it.
             var legacyPath = Path.Combine(appData, LegacyConfigFolder, "config.json");
@@ -86,17 +86,17 @@ public sealed class ICloudMcpOptions
             }
         }
 
-        var options = new ICloudMcpOptions();
+        var options = new McpForICloudOptions();
         if (File.Exists(path))
         {
             var json = File.ReadAllText(path);
-            options = JsonSerializer.Deserialize<ICloudMcpOptions>(json, new JsonSerializerOptions
+            options = JsonSerializer.Deserialize<McpForICloudOptions>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true,
                 Converters = { new JsonStringEnumConverter() },
-            }) ?? new ICloudMcpOptions();
+            }) ?? new McpForICloudOptions();
             options.ConfigFound = true;
         }
 

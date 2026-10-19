@@ -6,8 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Version>1.0.0</Version>
-    <AssemblyName>icloud-mcp</AssemblyName>
-    <RootNamespace>ICloudMcp</RootNamespace>
+    <AssemblyName>mcp-for-icloud</AssemblyName>
+    <RootNamespace>EvoDynamic.McpForICloud</RootNamespace>
+    <Company>EvoDynamic Inc</Company>
+    <Copyright>Copyright (c) 2026 EvoDynamic Inc</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
