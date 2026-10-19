@@ -1,0 +1,43 @@
+// Copy to %APPDATA%\AiVa\config.json and fill in. No passwords go here.
+{
+  // The Apple ID you sign in to iCloud with.
+  "AppleId": "you@icloud.com",
+
+  // Only needed if your Apple ID is NOT an @icloud.com/@me.com address:
+  // set this to your @icloud.com address, which is the IMAP login.
+  // "MailUser": "you@icloud.com",
+
+  "DisplayName": "Brian Seim",
+
+  // Every address you receive mail at, including custom-domain aliases.
+  // Drafts can only be created from these, and replies default to the alias the original was sent to.
+  "Aliases": [
+    "you@icloud.com",
+    "brian@yourbusiness.com",
+    "hello@yourotherdomain.com"
+  ],
+  "DefaultFrom": "brian@yourbusiness.com",
+
+  "TimeZone": "America/Chicago",
+  "DefaultCalendar": "Calendar",
+
+  "WorkingHours": {
+    "Start": "08:00",
+    "End": "18:00",
+    "Days": [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" ]
+  },
+
+  "Priority": {
+    // Full addresses, or domains starting with "@".
+    "VipSenders": [ "@bigclient.com", "spouse@example.com" ],
+    "LowPrioritySenders": [ "@linkedin.com", "@facebookmail.com" ],
+    "TrustedDomains": [ "@yourbank.com", "@yourcpa.com" ],
+
+    // Extra points for mail sent to a particular alias.
+    "AliasWeights": {
+      "brian@yourbusiness.com": 2
+    }
+
+    // "UrgentKeywords": [ "urgent", "asap", "deadline", "invoice" ]  // optional; has sensible defaults
+  }
+}
