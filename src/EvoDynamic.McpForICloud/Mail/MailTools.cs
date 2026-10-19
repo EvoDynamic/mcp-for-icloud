@@ -40,6 +40,10 @@ public sealed record MailMessage(
     string Body,
     bool Truncated);
 
+public sealed record MailRef(
+    [property: Description("Folder the message is in.")] string Folder,
+    [property: Description("Message UID.")] uint Uid);
+
 [McpServerToolType]
 public sealed partial class MailTools(MailService mail)
 {
@@ -203,7 +207,7 @@ public sealed partial class MailTools(MailService mail)
             var target = await mail.GetFolderAsync(client, destination, ct);
             if (target.Attributes.HasFlag(FolderAttributes.Trash))
             {
-                throw new McpException("Moving to trash isn't allowed from the assistant. Delete messages yourself in Mail.");
+                throw new McpException("mail_move doesn't move to trash. Use mail_delete after the user approves the deletion.");
             }
 
             var source = await mail.GetFolderAsync(client, folder, ct);
@@ -213,7 +217,82 @@ public sealed partial class MailTools(MailService mail)
             return new { Moved = ids.Count, From = source.FullName, To = target.FullName };
         }, ct);
 
-    [McpServerTool(Name = "mail_set_flags", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = true)]
+    [McpServerTool(Name = "mail_delete", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = true)]
+    [Description("Moves messages to Trash in one call; they stay recoverable there until iCloud empties it. " +
+                 "Messages can come from several folders. Never permanently deletes. Confirm the list with the user first.")]
+    public Task<object> Delete(
+        [Description("Messages to delete, each with the folder it's in and its UID.")] MailRef[] messages,
+        CancellationToken ct = default) =>
+        mail.RunAsync<object>(async client =>
+        {
+            if (messages is not { Length: > 0 })
+            {
+                throw new McpException("Pass at least one message to delete.");
+            }
+
+            var trash = await mail.GetFolderAsync(client, "trash", ct);
+
+            // Resolve every folder before moving anything, so a typo can't leave the batch half done.
+            var batches = new List<(IMailFolder Folder, List<UniqueId> Ids)>();
+            foreach (var group in messages.GroupBy(m => m.Folder.Trim(), StringComparer.OrdinalIgnoreCase))
+            {
+                var source = await mail.GetFolderAsync(client, group.Key, ct);
+                if (source.FullName == trash.FullName)
+                {
+                    throw new McpException("Those messages are already in Trash. Emptying Trash isn't available from the assistant.");
+                }
+
+                batches.Add((source, ToUniqueIds(group.Select(m => m.Uid).ToArray())));
+            }
+
+            var results = new List<object>();
+            foreach (var (source, ids) in batches)
+            {
+                await source.OpenAsync(FolderAccess.ReadWrite, ct);
+                await source.MoveToAsync(ids, trash, ct);
+                results.Add(new { From = source.FullName, Moved = ids.Count });
+            }
+
+            return new { Deleted = batches.Sum(b => b.Ids.Count), To = trash.FullName, Folders = results };
+        }, ct);
+
+    [McpServerTool(Name = "mail_unsubscribe_info", ReadOnly = true, OpenWorld = true)]
+    [Description("Reads the List-Unsubscribe headers of messages and returns how to unsubscribe: a one-click URL (RFC 8058), a web link, or a mailto. " +
+                 "Returns the links only and never unsubscribes. Show them to the user; one-click URLs must be POSTed, never just opened.")]
+    public Task<List<UnsubscribeInfo>> GetUnsubscribeInfo(
+        [Description("Folder the messages are in.")] string folder,
+        [Description("Message UIDs.")] uint[] uids,
+        CancellationToken ct = default) =>
+        mail.RunAsync(async client =>
+        {
+            var source = await mail.GetFolderAsync(client, folder, ct);
+            await source.OpenAsync(FolderAccess.ReadOnly, ct);
+            var ids = ToUniqueIds(uids);
+            var request = new FetchRequest(MessageSummaryItems.UniqueId | MessageSummaryItems.Envelope)
+            {
+                Headers = new HeaderSet(["List-Unsubscribe", "List-Unsubscribe-Post"]),
+            };
+            var summaries = (await source.FetchAsync(ids, request, ct)).ToDictionary(s => s.UniqueId.Id);
+
+            return ids.Select(id =>
+            {
+                if (!summaries.TryGetValue(id.Id, out var s))
+                {
+                    return new UnsubscribeInfo(source.FullName, id.Id, null, null, false, null, null, null, "Message not found; it may have been moved.");
+                }
+
+                var sender = s.Envelope?.From.Mailboxes.FirstOrDefault();
+                return UnsubscribeParser.Parse(
+                    source.FullName,
+                    id.Id,
+                    sender?.Address?.ToLowerInvariant(),
+                    s.Envelope?.Subject,
+                    s.Headers?["List-Unsubscribe"],
+                    s.Headers?["List-Unsubscribe-Post"]);
+            }).ToList();
+        }, ct);
+
+    [McpServerTool(Name = "mail_set_flags",ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Marks messages read/unread and/or flagged/unflagged.")]
     public Task<object> SetFlags(
         [Description("Folder the messages are in.")] string folder,
