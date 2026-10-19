@@ -1,10 +1,10 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AiVa.Mcp;
 
 /// <summary>
-/// User settings loaded from <c>%APPDATA%\AiVa\config.json</c> (or the path in <c>AIVA_CONFIG</c>).
+/// User settings loaded from <c>%APPDATA%\icloud-mcp\config.json</c> (or the path in <c>AIVA_CONFIG</c>).
 /// Secrets never live here; the app-specific password comes from <see cref="CredentialProvider"/>.
 /// </summary>
 public sealed class AiVaOptions
@@ -34,8 +34,13 @@ public sealed class AiVaOptions
 
     public PriorityOptions Priority { get; set; } = new();
 
+    public const string DefaultCredentialTarget = "icloud-mcp";
+
+    /// <summary>Target name used before the project was renamed; still read so existing installs keep working.</summary>
+    public const string LegacyCredentialTarget = "AiVa-iCloud";
+
     /// <summary>Windows Credential Manager target holding the Apple ID and app-specific password.</summary>
-    public string CredentialTarget { get; set; } = "AiVa-iCloud";
+    public string CredentialTarget { get; set; } = DefaultCredentialTarget;
 
     public string ImapHost { get; set; } = "imap.mail.me.com";
 
@@ -68,7 +73,15 @@ public sealed class AiVaOptions
         var path = Environment.GetEnvironmentVariable("AIVA_CONFIG");
         if (string.IsNullOrWhiteSpace(path))
         {
-            path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AiVa", "config.json");
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            path = Path.Combine(appData, "icloud-mcp", "config.json");
+
+            // The folder was named AiVa before the project was renamed; keep reading it until the user moves it.
+            var legacyPath = Path.Combine(appData, "AiVa", "config.json");
+            if (!File.Exists(path) && File.Exists(legacyPath))
+            {
+                path = legacyPath;
+            }
         }
 
         var options = new AiVaOptions();

@@ -45,13 +45,15 @@ dotnet publish icloud-mcp/src/AiVa.Mcp/AiVa.Mcp.csproj -c Release -o icloud-mcp/
 In a terminal, run this and paste the password when prompted (it isn't echoed or saved to any file):
 
 ```bash
-cmdkey /generic:AiVa-iCloud /user:you@icloud.com /pass
+cmdkey /generic:icloud-mcp /user:you@icloud.com /pass
 ```
 
 Use the Apple ID you sign in to iCloud with as `/user`.
+Credentials saved under the older `AiVa-iCloud` name are still picked up.
 
 ### 3. Create your config
-Copy `config.example.json` to `%APPDATA%\AiVa\config.json` and fill in your Apple ID, every alias you receive mail at, time zone, working hours and VIPs.
+Copy `config.example.json` to `%APPDATA%\icloud-mcp\config.json` and fill in your Apple ID, every alias you receive mail at, time zone, working hours and VIPs.
+A `%APPDATA%\AiVa\config.json` from an earlier version is still read if the new file doesn't exist.
 
 If your Apple ID is not an @icloud.com/@me.com address (e.g. it's a Gmail address), also set `MailUser` to your @icloud.com address — that's the IMAP login.
 
@@ -86,7 +88,7 @@ Each machine runs its own copy of the server; they all talk to the same iCloud a
 
 1. Install the [prerequisites](#prerequisites), then clone and build ([step 0](#0-build-it)).
 2. Create a **separate app-specific password** for this machine (e.g. `iCloud MCP – laptop`), so you can revoke one device without breaking the others, and store it with `cmdkey` as in [step 2](#2-store-it-in-windows-credential-manager).
-3. Copy `%APPDATA%\AiVa\config.json` from your existing machine instead of writing a new one.
+3. Copy `%APPDATA%\icloud-mcp\config.json` from your existing machine instead of writing a new one.
 4. Register the server with Claude Desktop ([step 4](#4-register-it-with-claude-desktop)) using this machine's `publish` path, then fully quit Claude Desktop from the system tray and reopen it.
 5. If you sign in to the same Claude account, your project and its instructions are already there. Ask it "List my calendars" to confirm the connection.
 6. If you'll change code on this machine, enable the [pre-push hook](#contributing-workflow).
@@ -106,7 +108,7 @@ This stores the app-specific password in plain text in that file; it's limited t
 }
 ```
 
-The config file lives at `~/.config/AiVa/config.json`.
+The config file lives at `~/.config/icloud-mcp/config.json`.
 
 ## Updating after code changes
 

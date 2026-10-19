@@ -1,4 +1,4 @@
-// Copy to %APPDATA%\AiVa\config.json and fill in. No passwords go here.
+// Copy to %APPDATA%\icloud-mcp\config.json and fill in. No passwords go here.
 {
   // The Apple ID you sign in to iCloud with.
   "AppleId": "you@icloud.com",

@@ -19,7 +19,15 @@ public sealed class CredentialProvider(AiVaOptions options)
             return _cached;
         }
 
-        var fromStore = OperatingSystem.IsWindows() ? ReadWindowsCredential(options.CredentialTarget) : null;
+        NetworkCredential? fromStore = null;
+        if (OperatingSystem.IsWindows())
+        {
+            fromStore = ReadWindowsCredential(options.CredentialTarget);
+            if (fromStore is null && options.CredentialTarget == AiVaOptions.DefaultCredentialTarget)
+            {
+                fromStore = ReadWindowsCredential(AiVaOptions.LegacyCredentialTarget);
+            }
+        }
         var user = fromStore?.UserName;
         var password = fromStore?.Password;
 
