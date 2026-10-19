@@ -23,7 +23,7 @@ It talks to iCloud directly over IMAP (`imap.mail.me.com`) and CalDAV (`caldav.i
 ## Setup (about 10 minutes)
 
 ### Prerequisites
-- Windows (credentials are read from Credential Manager; elsewhere, use the environment-variable overrides under *Notes and limits*).
+- Windows (credentials are read from Credential Manager). macOS works too; see [macOS](#macos).
 - [.NET 10 SDK](https://dotnet.microsoft.com/download).
 - Claude Desktop.
 
@@ -80,13 +80,47 @@ In a chat in that project:
 - "Draft a reply to the latest email from Dana saying Thursday works."
 - "Find me a free hour next Tuesday afternoon and hold it for proposal review."
 
+## Adding another computer
+
+Each machine runs its own copy of the server; they all talk to the same iCloud account.
+
+1. Install the [prerequisites](#prerequisites), then clone and build ([step 0](#0-build-it)).
+2. Create a **separate app-specific password** for this machine (e.g. `iCloud MCP – laptop`), so you can revoke one device without breaking the others, and store it with `cmdkey` as in [step 2](#2-store-it-in-windows-credential-manager).
+3. Copy `%APPDATA%\AiVa\config.json` from your existing machine instead of writing a new one.
+4. Register the server with Claude Desktop ([step 4](#4-register-it-with-claude-desktop)) using this machine's `publish` path, then fully quit Claude Desktop from the system tray and reopen it.
+5. If you sign in to the same Claude account, your project and its instructions are already there. Ask it "List my calendars" to confirm the connection.
+6. If you'll change code on this machine, enable the [pre-push hook](#contributing-workflow).
+
+### macOS
+
+Credential Manager is Windows-only, so pass the login through environment variables in `claude_desktop_config.json` instead.
+This stores the app-specific password in plain text in that file; it's limited to mail, calendar and contacts and can be revoked at any time.
+
+```json
+"ai-va": {
+  "command": "/Users/you/source/icloud-mcp/publish/AiVa.Mcp",
+  "env": {
+    "AIVA_ICLOUD_USER": "you@icloud.com",
+    "AIVA_ICLOUD_APP_PASSWORD": "xxxx-xxxx-xxxx-xxxx"
+  }
+}
+```
+
+The config file lives at `~/.config/AiVa/config.json`.
+
 ## Updating after code changes
+
+Fully quit Claude Desktop first, or the running server will lock the files. Then, from the repo root:
+
+```bash
+git pull
+```
 
 ```bash
 dotnet publish src/AiVa.Mcp/AiVa.Mcp.csproj -c Release -o publish
 ```
 
-Run it from the repo root. Quit Claude Desktop first, or the running exe will be locked.
+Reopen Claude Desktop to load the new version.
 
 ## Contributing workflow
 
