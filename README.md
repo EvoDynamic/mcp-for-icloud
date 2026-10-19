@@ -15,7 +15,7 @@ It talks to iCloud directly over IMAP (`imap.mail.me.com`) and CalDAV (`caldav.i
 | `mail_mark_not_spam` | Moves Junk → Inbox and tags it Not Junk | Yes |
 | `mail_move`, `mail_set_flags` | Archive/move (never to Trash), read/unread, flag | Yes |
 | `calendar_list_calendars`, `calendar_list_events`, `calendar_find_free_time` | Read your schedule, expand recurring events, find open slots in working hours | No |
-| `calendar_create_event`, `calendar_update_event` | Create/edit events (no invitations are sent) | Yes |
+| `calendar_create_event`, `calendar_update_event` | Create/edit events (no invitations are sent); new events can repeat daily/weekly/monthly/yearly or follow an RRULE | Yes |
 | `calendar_delete_event` | Delete an event (whole series if recurring) | Yes (marked destructive) |
 
 **There is deliberately no send tool and no delete-mail tool.** Drafts land in iCloud Drafts and you send them from Mail on any device.

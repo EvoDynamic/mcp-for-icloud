@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
@@ -31,6 +32,7 @@ public sealed class CalendarTools(CalDavClient calDav, AiVaOptions options)
 {
     private const string TimeFormat = "yyyy-MM-dd'T'HH:mm:sszzz";
     private const string DateFormat = "yyyy-MM-dd";
+    private static readonly Regex s_rruleChars = new("^[A-Z0-9=;,+-]+$", RegexOptions.Compiled);
 
     [McpServerTool(Name = "calendar_list_calendars", ReadOnly = true, OpenWorld = true)]
     [Description("Lists your iCloud calendars, plus the current local time and time zone used to interpret dates.")]
@@ -132,18 +134,23 @@ public sealed class CalendarTools(CalDavClient calDav, AiVaOptions options)
     }
 
     [McpServerTool(Name = "calendar_create_event", ReadOnly = false, Destructive = false, OpenWorld = true)]
-    [Description("Creates a single (non-recurring) event without inviting anyone. Confirm the details with the user first.")]
+    [Description("Creates an event without inviting anyone, optionally repeating (e.g. a birthday as one yearly all-day event). " +
+                 "Confirm the details with the user first.")]
     public async Task<EventInfo> CreateEvent(
         [Description("Event title.")] string title,
-        [Description("Start, ISO 8601. A date alone (2026-10-20) with allDay=true makes an all-day event.")] string start,
-        [Description("End, ISO 8601. Defaults to 1 hour after start (or the same day for all-day events).")] string? end = null,
+        [Description("Start, ISO 8601. A date alone (2026-10-20) with allDay=true makes an all-day event. For a repeating event this is the first occurrence.")] string start,
+        [Description("End, ISO 8601. Defaults to 1 hour after start (or the same day for all-day events). For a repeating event this is the end of the first occurrence, not of the series.")] string? end = null,
         [Description("All-day event.")] bool allDay = false,
         [Description("Calendar name; omit for the default calendar.")] string? calendar = null,
         [Description("Location.")] string? location = null,
         [Description("Notes.")] string? notes = null,
         [Description("Alert this many minutes before the start.")] int? alertMinutesBefore = null,
+        [Description("Repeat forever on the start's pattern: daily, weekly, monthly or yearly. Omit for a one-off event. Use rrule instead for anything more specific.")] string? repeat = null,
+        [Description("RFC 5545 recurrence rule for patterns repeat can't express, e.g. FREQ=WEEKLY;BYDAY=MO,WE;COUNT=10. " +
+                     "UNTIL must be a UTC time (20271231T235959Z) for timed events or a date (20271231) for all-day events. Don't combine with repeat.")] string? rrule = null,
         CancellationToken ct = default)
     {
+        var recurrence = ResolveRecurrence(repeat, rrule);
         var target = await calDav.ResolveCalendarAsync(calendar, ct);
         var uid = Guid.NewGuid().ToString("D").ToUpperInvariant();
 
@@ -176,8 +183,24 @@ public sealed class CalendarTools(CalDavClient calDav, AiVaOptions options)
                 throw new McpException("The event must end after it starts.");
             }
 
-            lines.Add($"DTSTART:{UtcStamp(startTime.UtcDateTime)}");
-            lines.Add($"DTEND:{UtcStamp(endTime.UtcDateTime)}");
+            if (recurrence is null)
+            {
+                lines.Add($"DTSTART:{UtcStamp(startTime.UtcDateTime)}");
+                lines.Add($"DTEND:{UtcStamp(endTime.UtcDateTime)}");
+            }
+            else
+            {
+                // A UTC start would drift an hour against local time across DST changes, so recurring events are anchored to the user's zone.
+                var tzid = IanaZoneId(options.Zone);
+                lines.InsertRange(lines.IndexOf("BEGIN:VEVENT"), TimeZoneLines(tzid, startTime));
+                lines.Add($"DTSTART;TZID={tzid}:{LocalStamp(startTime)}");
+                lines.Add($"DTEND;TZID={tzid}:{LocalStamp(endTime)}");
+            }
+        }
+
+        if (recurrence is not null)
+        {
+            lines.Add($"RRULE:{recurrence}");
         }
 
         lines.Add($"SUMMARY:{Escape(title)}");
@@ -411,6 +434,88 @@ public sealed class CalendarTools(CalDavClient calDav, AiVaOptions options)
     private static DateTimeOffset Min(DateTimeOffset a, DateTimeOffset b) => a < b ? a : b;
 
     private static string UtcStamp(DateTime utc) => utc.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
+
+    private string LocalStamp(DateTimeOffset value) =>
+        TimeZoneInfo.ConvertTime(value, options.Zone).ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
+
+    /// <summary>Turns a repeat preset or a raw RRULE into a validated RRULE value, or null for a one-off event.</summary>
+    private static string? ResolveRecurrence(string? repeat, string? rrule)
+    {
+        var hasRepeat = !string.IsNullOrWhiteSpace(repeat);
+        var hasRule = !string.IsNullOrWhiteSpace(rrule);
+        if (hasRepeat && hasRule)
+        {
+            throw new McpException("Pass either repeat or rrule, not both.");
+        }
+
+        if (hasRepeat)
+        {
+            return repeat!.Trim().ToLowerInvariant() switch
+            {
+                "daily" => "FREQ=DAILY",
+                "weekly" => "FREQ=WEEKLY",
+                "monthly" => "FREQ=MONTHLY",
+                "yearly" or "annually" => "FREQ=YEARLY",
+                _ => throw new McpException($"Unknown repeat '{repeat}'. Use daily, weekly, monthly or yearly, or pass an rrule."),
+            };
+        }
+
+        if (!hasRule)
+        {
+            return null;
+        }
+
+        var value = rrule!.Trim();
+        if (value.StartsWith("RRULE:", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value["RRULE:".Length..];
+        }
+
+        value = value.ToUpperInvariant();
+
+        // The rule is written into the ICS verbatim, so anything outside RRULE's alphabet (notably line breaks) is rejected outright.
+        if (!s_rruleChars.IsMatch(value) || !value.Split(';').Any(part => part.StartsWith("FREQ=", StringComparison.Ordinal)))
+        {
+            throw new McpException($"'{rrule}' isn't a valid recurrence rule. Expected something like FREQ=WEEKLY;BYDAY=MO,WE;COUNT=10.");
+        }
+
+        try
+        {
+            _ = new RecurrencePattern(value);
+        }
+        catch (Exception ex) when (ex is ArgumentException or FormatException or InvalidOperationException)
+        {
+            throw new McpException($"'{rrule}' isn't a valid recurrence rule: {ex.Message}");
+        }
+
+        return value;
+    }
+
+    private static string IanaZoneId(TimeZoneInfo zone)
+    {
+        if (zone.HasIanaId)
+        {
+            return zone.Id;
+        }
+
+        return TimeZoneInfo.TryConvertWindowsIdToIanaId(zone.Id, out var iana)
+            ? iana
+            : throw new McpException($"Couldn't map the time zone '{zone.Id}' to an IANA id; set TimeZone in config.json to one like America/Denver.");
+    }
+
+    /// <summary>Builds the VTIMEZONE block that RFC 5545 requires for every TZID an event references.</summary>
+    private static IEnumerable<string> TimeZoneLines(string tzid, DateTimeOffset earliest)
+    {
+        var calendar = new Ical.Net.Calendar();
+        calendar.AddTimeZone(VTimeZone.FromDateTimeZone(tzid, earliest.UtcDateTime, includeHistoricalData: false));
+        var ics = new CalendarSerializer().SerializeToString(calendar) ?? throw new McpException("Couldn't serialize the time zone.");
+
+        // Unfold first so Fold re-wraps each property cleanly when the event is written.
+        var unfolded = ics.Replace("\r\n ", "").Replace("\r\n\t", "").Split("\r\n");
+        var begin = Array.IndexOf(unfolded, "BEGIN:VTIMEZONE");
+        var end = Array.LastIndexOf(unfolded, "END:VTIMEZONE");
+        return begin < 0 || end < begin ? throw new McpException("Couldn't build the time zone definition.") : unfolded[begin..(end + 1)];
+    }
 
     private static string Escape(string text) =>
         text.Replace("\\", "\\\\").Replace(";", "\\;").Replace(",", "\\,").Replace("\r\n", "\\n").Replace("\n", "\\n");
