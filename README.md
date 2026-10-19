@@ -73,6 +73,19 @@ dotnet publish D:\source\ai-va-mcp\src\AiVa.Mcp\AiVa.Mcp.csproj -c Release -o D:
 
 Quit Claude Desktop first, or the running exe will be locked.
 
+## Contributing workflow
+
+`main` only changes through pull requests.
+GitHub can't enforce branch protection on a free private repo, so a versioned pre-push hook blocks direct pushes to `main` instead.
+Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Then work on a branch, push it, and open a PR with `gh pr create`; merge with `gh pr merge` or on GitHub.
+The hook is a guard rail, not a lock: `git push --no-verify` skips it.
+
 ## Notes and limits
 - Local MCP servers work in **Claude Desktop** (chats and projects). claude.ai in a browser or on mobile can't reach a local server; that would need this hosted as a remote MCP server with auth.
 - Recurring events: titles/locations/notes can be edited (whole series); time changes are left to the Calendar app.

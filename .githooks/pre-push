@@ -1,0 +1,17 @@
+#!/bin/sh
+# Blocks direct pushes to main so every change lands through a pull request.
+# GitHub can't enforce this on a free private repo, so it's enforced here instead.
+# Enable once per clone: git config core.hooksPath .githooks
+
+protected="refs/heads/main"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    if [ "$remote_ref" = "$protected" ]; then
+        echo "pre-push: direct pushes to main are blocked." >&2
+        echo "Push a branch and open a pull request instead:" >&2
+        echo "  git switch -c <branch> && git push -u origin <branch> && gh pr create" >&2
+        exit 1
+    fi
+done
+
+exit 0
