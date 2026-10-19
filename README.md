@@ -1,4 +1,4 @@
-# AI VA — iCloud Mail & Calendar MCP server
+# iCloud MCP — iCloud Mail & Calendar for Claude
 
 A local [MCP](https://modelcontextprotocol.io) server that lets Claude triage your iCloud Mail (including custom-domain aliases), rescue misfiled Junk, save reply drafts, and manage your iCloud Calendar.
 
@@ -22,9 +22,24 @@ It talks to iCloud directly over IMAP (`imap.mail.me.com`) and CalDAV (`caldav.i
 
 ## Setup (about 10 minutes)
 
+### Prerequisites
+- Windows (credentials are read from Credential Manager; elsewhere, use the environment-variable overrides under *Notes and limits*).
+- [.NET 10 SDK](https://dotnet.microsoft.com/download).
+- Claude Desktop.
+
+### 0. Build it
+
+```bash
+git clone https://github.com/brianseim/icloud-mcp.git
+```
+
+```bash
+dotnet publish icloud-mcp/src/AiVa.Mcp/AiVa.Mcp.csproj -c Release -o icloud-mcp/publish
+```
+
 ### 1. Create an app-specific password
 1. Go to <https://account.apple.com> → **Sign-In and Security** → **App-Specific Passwords**.
-2. Generate one named `AI VA`. Keep the page open.
+2. Generate one named `iCloud MCP`. Keep the page open.
 
 ### 2. Store it in Windows Credential Manager
 In a terminal, run this and paste the password when prompted (it isn't echoed or saved to any file):
@@ -47,19 +62,19 @@ Open Claude Desktop → **Settings → Developer → Edit Config** and add to `c
 {
   "mcpServers": {
     "ai-va": {
-      "command": "D:\\source\\ai-va-mcp\\publish\\AiVa.Mcp.exe"
+      "command": "C:\\path\\to\\icloud-mcp\\publish\\AiVa.Mcp.exe"
     }
   }
 }
 ```
 
-(Merge into the existing `mcpServers` object if you already have one.) Fully quit and reopen Claude Desktop.
+Use the full path to your `publish` folder. (Merge into the existing `mcpServers` object if you already have one.) Fully quit and reopen Claude Desktop.
 
-### 5. Point the AI VA project at it
-Paste [`docs/ai-va-project-instructions.md`](docs/ai-va-project-instructions.md) into the **AI VA** project's instructions and edit the priorities section. In Claude's tool settings, leave the write tools on "ask before use".
+### 5. Give Claude your working rules
+Create a Claude project for your assistant, paste [`docs/example-project-instructions.md`](docs/example-project-instructions.md) into its instructions, and edit the priorities section. In Claude's tool settings, leave the write tools on "ask before use".
 
 ### 6. Try it
-In an AI VA chat:
+In a chat in that project:
 - "What needs my attention in email today?"
 - "Check my spam for anything real from the last two weeks."
 - "Draft a reply to the latest email from Dana saying Thursday works."
@@ -68,15 +83,15 @@ In an AI VA chat:
 ## Updating after code changes
 
 ```bash
-dotnet publish D:\source\ai-va-mcp\src\AiVa.Mcp\AiVa.Mcp.csproj -c Release -o D:\source\ai-va-mcp\publish
+dotnet publish src/AiVa.Mcp/AiVa.Mcp.csproj -c Release -o publish
 ```
 
-Quit Claude Desktop first, or the running exe will be locked.
+Run it from the repo root. Quit Claude Desktop first, or the running exe will be locked.
 
 ## Contributing workflow
 
-`main` only changes through pull requests.
-GitHub can't enforce branch protection on a free private repo, so a versioned pre-push hook blocks direct pushes to `main` instead.
+`main` is protected on GitHub and only changes through pull requests.
+A versioned pre-push hook also stops direct pushes to `main` locally, before GitHub would reject them.
 Enable it once per clone:
 
 ```bash
@@ -84,7 +99,6 @@ git config core.hooksPath .githooks
 ```
 
 Then work on a branch, push it, and open a PR with `gh pr create`; merge with `gh pr merge` or on GitHub.
-The hook is a guard rail, not a lock: `git push --no-verify` skips it.
 
 ## Notes and limits
 - Local MCP servers work in **Claude Desktop** (chats and projects). claude.ai in a browser or on mobile can't reach a local server; that would need this hosted as a remote MCP server with auth.
