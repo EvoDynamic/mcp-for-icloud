@@ -16,11 +16,13 @@ It talks to iCloud directly over IMAP (`imap.mail.me.com`) and CalDAV (`caldav.i
 | `mail_create_draft` | Saves a draft to iCloud Drafts, threaded and from the right alias | Adds a draft |
 | `mail_mark_not_spam` | Moves Junk → Inbox and tags it Not Junk | Yes |
 | `mail_move`, `mail_set_flags` | Archive/move (never to Trash), read/unread, flag | Yes |
+| `mail_delete` | Moves a batch of messages, from any folders, to Trash in one call. Never empties Trash | Yes (marked destructive) |
+| `mail_unsubscribe_info` | Reads List-Unsubscribe headers and returns the one-click URL, web link or mailto. Never unsubscribes | No |
 | `calendar_list_calendars`, `calendar_list_events`, `calendar_find_free_time` | Read your schedule, expand recurring events, find open slots in working hours | No |
 | `calendar_create_event`, `calendar_update_event` | Create/edit events (no invitations are sent); new events can repeat daily/weekly/monthly/yearly or follow an RRULE | Yes |
 | `calendar_delete_event` | Delete an event (whole series if recurring) | Yes (marked destructive) |
 
-**There is deliberately no send tool and no delete-mail tool.** Drafts land in iCloud Drafts and you send them from Mail on any device.
+**There is deliberately no send tool and no permanent delete.** Drafts land in iCloud Drafts and you send them from Mail on any device. `mail_delete` only moves mail to Trash, where it stays recoverable until iCloud empties it.
 
 ## Setup (about 10 minutes)
 
