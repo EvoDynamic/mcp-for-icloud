@@ -7,7 +7,7 @@
   // set this to your @icloud.com address, which is the IMAP login.
   // "MailUser": "you@icloud.com",
 
-  "DisplayName": "Brian Seim",
+  "DisplayName": "Your Name",
 
   // Every address you receive mail at, including custom-domain aliases.
   // Drafts can only be created from these, and replies default to the alias the original was sent to.
