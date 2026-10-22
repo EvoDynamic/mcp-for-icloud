@@ -218,7 +218,7 @@ public sealed partial class MailTools(MailService mail)
         }, ct);
 
     [McpServerTool(Name = "mail_delete", ReadOnly = false, Destructive = true, Idempotent = true, OpenWorld = true)]
-    [Description("Moves messages to Trash in one call; they stay recoverable there until iCloud empties it. " +
+    [Description("Moves messages to the trash folder (\"Deleted Messages\" on iCloud) in one call; they stay recoverable there until iCloud empties it. " +
                  "Messages can come from several folders. Never permanently deletes. Confirm the list with the user first.")]
     public Task<object> Delete(
         [Description("Messages to delete, each with the folder it's in and its UID.")] MailRef[] messages,
@@ -388,7 +388,9 @@ public sealed partial class MailTools(MailService mail)
                 draft.References.Add(messageId);
             }
 
-            draft.Body = new TextPart("plain") { Text = body };
+            // Spark's editor drops line breaks from text/plain drafts, so include an HTML alternative too.
+            var text = body.ReplaceLineEndings("\r\n");
+            draft.Body = new BodyBuilder { TextBody = text, HtmlBody = ToHtml(text) }.ToMessageBody();
 
             var drafts = await mail.GetFolderAsync(client, "drafts", ct);
             var newUid = await drafts.AppendAsync(new AppendRequest(draft, MessageFlags.Draft | MessageFlags.Seen), ct);
@@ -522,6 +524,14 @@ public sealed partial class MailTools(MailService mail)
         text = WebUtility.HtmlDecode(text);
         text = SpaceRuns().Replace(text, " ");
         return BlankLines().Replace(text, "\n\n").Trim();
+    }
+
+    // One <div> per line, <div><br></div> for blank lines, the way Apple Mail composes; Spark's editor drops <p> spacing.
+    private static string ToHtml(string text)
+    {
+        var lines = text.Trim().Split("\r\n")
+            .Select(line => line.Length == 0 ? "<div><br></div>" : $"<div>{WebUtility.HtmlEncode(line)}</div>");
+        return "<html><body>\r\n" + string.Join("\r\n", lines) + "\r\n</body></html>";
     }
 
     [GeneratedRegex(@"<(script|style|head)[^>]*>.*?</\1>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
